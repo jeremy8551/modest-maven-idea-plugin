@@ -1,0 +1,54 @@
+# =============================================================================
+# Author:             吕钊军
+# Created Date:       2025-01-10
+# Last Modified:      2025-01-12
+# Version:            1.0
+# parameter:          pattern（模糊查询）
+# parameter:          start（起始位置）
+# Description:        响应解析
+# =============================================================================
+
+# 打印变量方法
+# this.help()
+
+set responseBody = this.sendHttp("https://mvn.coderead.cn/search?keyword=${pattern}")
+# responseBody.print()
+
+if responseBody.isBlank() || !responseBody.startsWith("{", 0, false, true) then
+    echo "responseBody: ${responseBody}"
+    exit null
+fi
+
+set json = responseBody.getJSONObject()
+if !json.getBoolean("success") then
+    echo "responseBody: ${responseBody}"
+    exit null
+fi
+
+set list = this.forName("java.util.ArrayList").newInstance()
+set result = json.getJSONArray("results")
+set length = result.length()
+set index = 0
+while index < length loop
+    set artifactJson = result.getJSONObject(index)
+    set jsonValue = artifactJson.getString("value").split(":")
+    set groupId = jsonValue[0]
+    set artifactId = jsonValue[1]
+    set xml = "<root>" + artifactJson.getString("name") + "</root>"
+    set artifactDate = xml.newDocument().getChildNodes("root").get(0).getChildNodes("span").get(1).getText().date()
+
+    set artifact = this.forName("cn.org.expect.maven.impl.DefaultArtifact").newInstance("${groupId}", "${artifactId}", "", "", artifactDate, 0)
+    list.add(artifact)
+
+    set index = index + 1
+end loop
+
+set repository = "cn.org.expect.maven.repository.coderead.CodeReadRepository"
+set enum = this.forName("cn.org.expect.maven.repository.SearchResultType").getEnum("ALL")
+set foundStart = list.size()
+set foundNumber = list.size()
+set currentTimeMillis = this.currentTimeMillis()
+set hasMore = false
+
+set result = this.forName("cn.org.expect.maven.repository.impl.DefaultSearchResult").newInstance("${repository}", enum, list, $foundStart, $foundNumber, $currentTimeMillis, $hasMore)
+exit result

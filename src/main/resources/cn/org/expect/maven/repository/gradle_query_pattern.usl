@@ -1,0 +1,76 @@
+# =============================================================================
+# Author:             吕钊军
+# Created Date:       2025-01-10
+# Last Modified:      2025-01-12
+# Version:            1.0
+# parameter:          pattern（模糊查询）
+# parameter:          start（起始位置）
+# Description:        响应解析
+# =============================================================================
+
+# 打印变量方法
+# this.help()
+
+set responseBody = this.sendHttp("https://plugins.gradle.org/search?term=${pattern}&page=${start}")
+# responseBody.print()
+
+set startSearch = 0
+
+# 搜索字符串
+function searchStr() {
+    set indexStr="$1"
+    set begin = responseBody.indexOf("${indexStr}", $startSearch)
+    if $begin == -1 then
+        exit null
+    else
+        set startSearch=$begin + indexStr.length()
+    fi
+}
+
+searchStr "search-results"
+
+set tbodyTag = responseBody.readTag("tbody", $startSearch)
+set startSearch = $startSearch + tbodyTag.length()
+#echo "tbodyTag: ${tbodyTag}"
+set trNodes = tbodyTag.newDocument().getChildNodes("tbody").get(0).getChildNodes("tr");
+
+#
+set list = this.forName("java.util.ArrayList").newInstance()
+set length = trNodes.size();
+set index = 0
+while index < length loop
+    set tdNodes = trNodes.get(index).getChildNodes("td");
+
+    # 搜索结果为空
+    if tdNodes.size() == 1 then
+        echo "<em>No plugins found.</em>"
+        exit null
+    fi
+
+    if tdNodes.size() >= 2 then
+        set tdNode = tdNodes.get(0)
+        set aTag = tdNode.getChildNodes("h3").get(0).getChildNodes("a").get(0)
+        set gradlePluginHref = aTag.get("href").trim()
+        set gradlePluginID = aTag.getText().trim()
+        set gradlePluginDescription = tdNode.getChildNodes("p").get(0).getText()
+
+        set gradlePluginVersion = tdNodes.get(1).getChildNodes("span").get(0).getText().trim()
+        set gradlePluginDateStr = tdNodes.get(1).getChildNodes("span").get(1).getText().trim("()").date()
+
+        # echo "gradlePluginID: ${gradlePluginID}, version: ${gradlePluginVersion}, dates: ${gradlePluginDateStr}, href: ${gradlePluginHref}, desc: ${gradlePluginDescription}"
+        set gradlePluginInfo = this.forName("cn.org.expect.maven.repository.gradle.GradlePlugin").newInstance(gradlePluginID, gradlePluginVersion, gradlePluginDateStr, gradlePluginHref, gradlePluginDescription)
+        list.add(gradlePluginInfo)
+    fi
+
+    set index = index + 1
+end loop
+
+set repository = "cn.org.expect.maven.repository.gradle.GradlePluginRepository"
+set enum = this.forName("cn.org.expect.maven.repository.SearchResultType").getEnum("NO_TOTAL")
+set foundStart = start + 2
+set foundNumber = list.size()
+set currentTimeMillis = this.currentTimeMillis()
+set hasMore = list.size() >= 10
+
+set result = this.forName("cn.org.expect.maven.repository.impl.DefaultSearchResult").newInstance("${repository}", enum, list, $foundStart, $foundNumber, $currentTimeMillis, $hasMore)
+exit result

@@ -1,0 +1,45 @@
+# =============================================================================
+# Author:             吕钊军
+# Created Date:       2025-01-10
+# Last Modified:      2025-01-12
+# Version:            1.0
+# parameter:          gradlePluginID
+# parameter:          gradlePluginVersion
+# Description:        响应解析
+# =============================================================================
+
+# 打印变量方法
+# this.help()
+
+# 参数
+set gradlePluginID = "$1"
+set gradlePluginVersion = "$2"
+
+# 发送Http请求
+set responseBody = this.sendHttp("https://plugins.gradle.org/plugin/${gradlePluginID}/${gradlePluginVersion}")
+# responseBody.print()
+
+# 起始位置
+set startSearch = 0
+
+# 搜索字符串
+function searchStr() {
+    set indexStr="$1"
+    set begin = responseBody.indexOf("${indexStr}", startSearch)
+    if $begin == -1 then
+        echo "responseBody: ${responseBody}"
+        exit null
+    else
+        set startSearch = begin + indexStr.length()
+    fi
+}
+
+set findStr = "version-info well well-sm"
+searchStr "${findStr}"
+set startSearch = startSearch - findStr.length() - 14
+
+# 日期格式: Created 02 September 2024.
+set gradlePluginDate = responseBody.readTag("div", startSearch).replace("&nbsp;", "").newDocument().getChildNodes("div").get(0).getChildNodes("p").filter("class=version-created-date").get(0).getText().trim().replace("Created", "").replace(".", "").trim().date()
+set gradlePluginHref = "https://plugins.gradle.org/plugin/${gradlePluginID}/${gradlePluginVersion}"
+set gradleInfo = this.forName("cn.org.expect.maven.repository.gradle.GradlePlugin").newInstance(gradlePluginID, gradlePluginVersion, gradlePluginDate, gradlePluginHref, "")
+exit gradleInfo

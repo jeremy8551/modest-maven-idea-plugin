@@ -1,0 +1,61 @@
+# =============================================================================
+# Author:             吕钊军
+# Created Date:       2025-01-10
+# Last Modified:      2025-01-12
+# Version:            1.0
+# parameter:          groupId
+# parameter:          artifactId（工件ID）
+# parameter:          start（起始位置）
+# parameter:          rows（最大记录数）
+# Description:        响应解析
+# =============================================================================
+
+# 打印变量方法
+# this.help()
+
+# 外部参数
+set groupId = "$1"
+set artifactId = "$2"
+set start = "$3"
+set rows = "$4"
+
+# 发送Http请求
+set responseBody = this.sendHttp("https://search.maven.org/solrsearch/select?q=g:${groupId}+AND+a:${artifactId}&rows=${rows}&core=gav&start=${start}&wt=json")
+responseBody.print()
+
+# 校验参数
+if responseBody.isBlank() || !responseBody.startsWith("{", 0, false, true) then
+    echo "responseBody: ${responseBody}"
+    exit null
+fi
+
+# 工件集合
+set list = this.forName("java.util.ArrayList").newInstance()
+
+# 解析响应
+set json = responseBody.getJSONObject();
+set response = json.getJSONObject("response");
+set docs = response.getJSONArray("docs");
+set length = docs.length()
+set index = 0
+while index < length loop
+    set jsonObject = docs.getJSONObject(index)
+
+    set groupId = jsonObject.getString("g");
+    set artifactId = jsonObject.getString("a");
+    set packaging = jsonObject.getString("p");
+    set timestamp = jsonObject.getLong("timestamp").date();
+    if jsonObject.has("v") then
+        set version = jsonObject.getString("v");
+    else
+        set version = jsonObject.getString("latestVersion");
+    fi
+    set versionCount = -1
+
+    set artifact = this.forName("cn.org.expect.maven.impl.DefaultArtifact").newInstance("${groupId}", "${artifactId}", "${version}", "${packaging}", timestamp, ${versionCount})
+    list.add(artifact)
+
+    set index = index + 1
+end loop
+
+exit list
