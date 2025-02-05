@@ -9,7 +9,6 @@ import cn.org.expect.log.LogFactory;
 import cn.org.expect.maven.repository.aliyun.AliyunArtifactDownloader;
 import cn.org.expect.maven.repository.central.CentralArtifactDownloader;
 import cn.org.expect.maven.repository.central.CentralRepository;
-import cn.org.expect.maven.repository.coderead.CodeReadRepository;
 import cn.org.expect.maven.script.GitHub;
 import cn.org.expect.maven.script.Gitee;
 import cn.org.expect.util.CharsetName;
@@ -94,7 +93,6 @@ public class DefaultMavenPluginSettings implements MavenPluginSettings {
                 log.debug("Use configuration information from China region ..");
             }
 
-            this.repositoryId = CodeReadRepository.class.getAnnotation(EasyBean.class).value();
             this.downloadWay = AliyunArtifactDownloader.class.getAnnotation(EasyBean.class).value();
             this.scriptRepositoryName = Gitee.class.getAnnotation(EasyBean.class).value();
         }

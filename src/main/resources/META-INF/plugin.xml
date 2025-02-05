@@ -41,8 +41,7 @@
         <li>从 Maven 本地仓库中删除工件.</li>
         <li>查看 Maven 本地仓库中 jar 文件的 JDK 版本号.</li>
         <li>从 Maven 本地仓库中删除以 lastUpdated 结尾的文件.</li>
-        <li>搜索Java类名所在的工件信息.</li>
-        <li>中国地区默认使用**源码阅读网 (CodeRead) **的接口查询 Maven 工件信息</li>
+        <li>搜索Java类所在的工件信息.</li>
         <a href="https://github.com/jeremy8551/modest-maven-idea-plugin">项目地址</a>
       ]]>
     </description>

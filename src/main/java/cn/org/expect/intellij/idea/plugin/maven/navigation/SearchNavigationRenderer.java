@@ -310,6 +310,10 @@ public class SearchNavigationRenderer extends SearchEverywherePsiRenderer {
                                 return prefix + "21";
                             case 66:
                                 return prefix + "22";
+                            case 67:
+                                return prefix + "23";
+                            case 68:
+                                return prefix + "24";
                         }
                     }
                 }

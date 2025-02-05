@@ -80,7 +80,7 @@ public class MavenRepositoryChooserAction extends ScopeChooserAction {
                 return descriptor;
             }
         }
-        return CollectionUtils.firstElement(descriptors);
+        return CollectionUtils.first(descriptors);
     }
 
     protected void onProjectScopeToggled() {

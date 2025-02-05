@@ -12,7 +12,6 @@ import cn.org.expect.maven.impl.ArtifactOptionImpl;
 import cn.org.expect.maven.repository.ArtifactDownloader;
 import cn.org.expect.maven.repository.Repository;
 import cn.org.expect.maven.repository.aliyun.AliyunMavenRepository;
-import cn.org.expect.maven.repository.coderead.CodeReadRepository;
 import cn.org.expect.maven.repository.cve.CveRepository;
 import cn.org.expect.maven.repository.gradle.GradlePluginRepository;
 import cn.org.expect.util.ClassUtils;
@@ -40,7 +39,7 @@ public interface MavenEasyContext extends EasyContext {
 
         for (int i = 0; i < list.size(); i++) {
             EasyBeanEntry entry = list.get(i);
-            if (ClassUtils.inArray(entry.getType(), CveRepository.class, GradlePluginRepository.class, AliyunMavenRepository.class, CodeReadRepository.class)) {
+            if (ClassUtils.inArray(entry.getType(), CveRepository.class, GradlePluginRepository.class, AliyunMavenRepository.class)) {
                 list.remove(entry);
             }
         }

@@ -30,7 +30,7 @@ modest-maven is an IntelliJ Idea plugin used to access artifacts from remote Mav
 - 从 Maven 本地仓库中删除工件.
 - 查看 Maven 本地仓库中 jar 文件的 JDK 版本号.
 - 从 Maven 本地仓库中删除以 lastUpdated 结尾的文件.
-- 搜索Java类名所在的工件信息
+- 搜索 Java 类所在的工件信息
 
 
 
