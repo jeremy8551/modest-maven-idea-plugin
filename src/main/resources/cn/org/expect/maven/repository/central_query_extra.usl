@@ -1,0 +1,85 @@
+# =============================================================================
+# Author:             吕钊军
+# Created Date:       2025-01-10
+# Last Modified:      2025-01-12
+# Version:            1.0
+# parameter:          groupId
+# parameter:          artifactId（工件ID）
+# Description:        响应解析
+# =============================================================================
+
+# 打印变量方法
+# this.help()
+
+# 参数
+set start = 0
+set rows = 200
+
+# 发送Http请求
+set responseBody = this.sendHttp("https://search.maven.org/solrsearch/select?q=g:${groupId}+AND+a:${artifactId}&rows=${rows}&core=gav&start=${start}&wt=json")
+responseBody.print()
+
+# 校验参数
+if responseBody.isBlank() || !responseBody.startsWith("{", 0, false, true) then
+    echo "responseBody: ${responseBody}"
+    exit null
+fi
+
+# 解析响应
+set json = responseBody.getJSONObject();
+set response = json.getJSONObject("response");
+set numFound = response.getInt("numFound"); # 总记录数
+set docs = response.getJSONArray("docs");
+
+# 解析JSON数组
+set list = this.forName("java.util.ArrayList").newInstance()
+set length = docs.length()
+set index = 0
+while index < length loop
+    set jsonObject = docs.getJSONObject(index)
+
+    set groupId = jsonObject.getString("g");
+    set artifactId = jsonObject.getString("a");
+    set packaging = jsonObject.getString("p");
+    set timestamp = jsonObject.getLong("timestamp").date();
+    if jsonObject.has("v") then
+        set version = jsonObject.getString("v");
+    else
+        set version = jsonObject.getString("latestVersion");
+    fi
+    set versionCount = -1
+
+    set artifact = this.forName("cn.org.expect.maven.impl.DefaultArtifact").newInstance("${groupId}", "${artifactId}", "${version}", "${packaging}", timestamp, ${versionCount})
+    list.add(artifact)
+
+    set index = index + 1
+end loop
+
+# 并发命令
+set begin = list.size() # 起始位置
+set commands = this.forName("java.util.ArrayList").newInstance()
+while numFound > begin loop
+    commands.add("run central_query_extra_page.usl ${groupId} ${artifactId} ${begin} ${rows}")
+    set begin = begin + rows + 1
+end loop
+set commandResultList = this.evaluate(7, commands)
+
+# 合并工件
+for resultList in commandResultList loop
+    for aList in resultList loop
+        list.add(aList)
+    end loop
+end loop
+set comparator = this.forName("cn.org.expect.maven.repository.central.CentralVersionComparator").newInstance()
+list.sort(comparator)
+
+# 搜索结果
+set repository = "cn.org.expect.maven.repository.central.CentralRepository"
+set enum = this.forName("cn.org.expect.maven.repository.SearchResultType").getEnum("ALL")
+set foundStart = $begin
+set foundNumber = $numFound
+set currentTimeMillis = this.currentTimeMillis()
+set hasMore = false
+
+set result = this.forName("cn.org.expect.maven.repository.impl.DefaultSearchResult").newInstance("${repository}", enum, list, $foundStart, $foundNumber, $currentTimeMillis, $hasMore)
+exit result

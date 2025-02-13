@@ -1,0 +1,63 @@
+# =============================================================================
+# Author:             吕钊军
+# Created Date:       2025-01-10
+# Last Modified:      2025-01-12
+# Version:            1.0
+# parameter:          pattern（模糊查询）
+# parameter:          start（起始位置）
+# Description:        响应解析
+# =============================================================================
+
+# 打印变量方法
+# this.help()
+
+# 响应最大记录数
+set rows = 200
+
+set responseBody = this.sendHttp("https://search.maven.org/solrsearch/select?q=${pattern}&rows=${rows}&start=${start}&wt=json")
+# responseBody.print()
+if responseBody.isBlank() || !responseBody.startsWith("{", 0, false, true) then
+    echo "responseBody: ${responseBody}"
+    exit null
+fi
+
+# 解析响应
+set json = responseBody.getJSONObject()
+set response = json.getJSONObject("response")
+set numFound = response.getInt("numFound"); # 总记录数
+set responseStart = response.getInt("start"); # 起始位置，从0开始
+set docs = response.getJSONArray("docs"); # 工件数组
+
+set list = this.forName("java.util.ArrayList").newInstance()
+set length = docs.length()
+set index = 0
+while index < length loop
+    set jsonObject = docs.getJSONObject(index)
+
+    set groupId = jsonObject.getString("g");
+    set artifactId = jsonObject.getString("a");
+    set version = jsonObject.getString("latestVersion");
+    set packaging = jsonObject.getString("p");
+    set timestamp = jsonObject.getLong("timestamp").date();
+    set versionCount = jsonObject.getInt("versionCount");
+
+    set artifact = this.forName("cn.org.expect.maven.impl.DefaultArtifact").newInstance("${groupId}", "${artifactId}", "${version}", "${packaging}", timestamp, ${versionCount})
+    list.add(artifact)
+
+    set index = index + 1
+end loop
+
+# 排序
+set comparator = this.forName("cn.org.expect.maven.repository.central.CentralComparator").newInstance()
+list.sort(comparator) # 按版本数，时间倒序排序
+
+# 搜索结果
+set repository = "cn.org.expect.maven.repository.central.CentralRepository"
+set enum = this.forName("cn.org.expect.maven.repository.SearchResultType").getEnum("LIMIT_PAGE")
+set foundStart = responseStart + list.size() + 1
+set foundNumber = $numFound
+set currentTimeMillis =  this.currentTimeMillis()
+set hasMore = numFound > list.size()
+
+set result = this.forName("cn.org.expect.maven.repository.impl.DefaultSearchResult").newInstance("${repository}", enum, list, $foundStart, $foundNumber, $currentTimeMillis, $hasMore)
+exit result

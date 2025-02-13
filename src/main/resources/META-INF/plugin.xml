@@ -1,0 +1,86 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
+    <id>cn.org.expect.intellij.idea.plugin.maven</id>
+
+    <!-- Public plugin name should be written in Title Case.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
+    <name>Maven+</name>
+
+    <!-- 项目类别：插件 -->
+    <category>Plugins</category>
+
+    <description>
+        <![CDATA[
+        <p>Provide search in Maven Central Repository.</p>
+        Feature List:
+        <ul>
+        <li>Search artifacts in Maven Central Repository.</li>
+        <li>Copy Maven Dependency.</li>
+        <li>Copy Gradle Dependency.</li>
+        <li>Browse artifacts in Central Repository.</li>
+        <li>Browse artifacts in Local Repository.</li>
+        <li>Download artifacts from Central Repository.</li>
+        <li>View JDK version of jar in Local Repository.</li>
+        <li>Delete artifacts from Local Repository.</li>
+        <li>Delete “*.lastUpdated” from Local Repository.</li>
+        <li>Search the artifact information where the Java class name is located.</li>
+        </ul>
+        <a href="https://github.com/jeremy8551/modest-maven-idea-plugin">Project Url</a>
+
+        <br>
+        <p>提供在 Maven 中央仓库中搜索功能.</p>
+        功能介绍：
+        <ul>
+        <li>搜索 Maven 中央仓库中的工件.</li>
+        <li>复制 Maven 依赖.</li>
+        <li>复制 Gradle 依赖.</li>
+        <li>使用浏览器访问 Maven 中央仓库中的工件.</li>
+        <li>快速访问 Maven 本地仓库中的工件.</li>
+        <li>从 Maven 中央仓库下载工件到本地仓库.</li>
+        <li>从 Maven 本地仓库中删除工件.</li>
+        <li>查看 Maven 本地仓库中 jar 文件的 JDK 版本号.</li>
+        <li>从 Maven 本地仓库中删除以 lastUpdated 结尾的文件.</li>
+        <li>搜索 Java 类所在的工件信息.</li>
+        <a href="https://github.com/jeremy8551/modest-maven-idea-plugin">项目地址</a>
+      ]]>
+    </description>
+
+    <change-notes>
+        <![CDATA[
+        <h3>v1.0.0</h3>
+        <ul>
+            <li>initial release</li>
+        </ul>
+      ]]>
+    </change-notes>
+
+    <idea-version since-build="232.*"/>
+
+    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
+    <vendor email="jeremy8551@gmail.com" url="https://github.com/jeremy8551">Jeremy</vendor>
+
+    <!-- Product and plugin compatibility requirements.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.properties</depends>
+    <depends>org.jetbrains.idea.reposearch</depends>
+    <depends optional="true" config-file="plugin-maven.xml">org.jetbrains.idea.maven</depends>
+    <depends>org.jetbrains.idea.maven.model</depends>
+    <depends>org.jetbrains.idea.maven.server.api</depends>
+
+    <!-- 应用监听器 -->
+    <applicationListeners>
+        <listener class="cn.org.expect.intellij.idea.plugin.maven.MavenSearchPluginApplication" topic="com.intellij.ide.AppLifecycleListener"/>
+    </applicationListeners>
+
+    <!-- Extension points defined by the plugin.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- 搜索类别 -->
+        <searchEverywhereContributor implementation="cn.org.expect.intellij.idea.plugin.maven.MavenSearchPluginFactory"/>
+
+        <!-- 设置 -->
+        <projectConfigurable instance="cn.org.expect.intellij.idea.plugin.maven.settings.MavenPluginConfigurable" groupId="Other Settings"/>
+    </extensions>
+</idea-plugin>

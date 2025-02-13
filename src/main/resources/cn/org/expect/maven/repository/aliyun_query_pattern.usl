@@ -1,0 +1,57 @@
+# =============================================================================
+# Author:             吕钊军
+# Created Date:       2025-01-10
+# Last Modified:      2025-01-12
+# Version:            1.0
+# parameter:          pattern（模糊查询）
+# parameter:          start（起始位置）
+# Description:        响应解析
+# =============================================================================
+
+# 打印变量方法
+# this.help()
+
+set responseBody = this.sendHttp("https://developer.aliyun.com/artifact/aliyunMaven/searchArtifactByWords?repoId=all&queryTerm=${pattern}&_input_charset=utf-8")
+# responseBody.print()
+if responseBody.isBlank() || !responseBody.startsWith("{", 0, false, true) then
+    echo "responseBody: ${responseBody}"
+    exit null
+fi
+
+set json = responseBody.getJSONObject()
+if !json.getBoolean("successful") then
+    echo "responseBody: ${responseBody}"
+    exit null
+fi
+
+set list = this.forName("java.util.ArrayList").newInstance()
+set docs = json.getJSONArray("object");
+set length = docs.length()
+set index = 0
+while index < length loop
+    set jsonObject = docs.getJSONObject(index)
+
+    set groupId = jsonObject.getString("groupId");
+    set artifactId = jsonObject.getString("artifactId");
+    set version = jsonObject.getString("version");
+    set packaging = jsonObject.getString("packaging");
+
+    set artifact = this.forName("cn.org.expect.maven.impl.DefaultArtifact").newInstance("${groupId}", "${artifactId}", "${version}", "${packaging}", null, 0)
+    list.add(artifact)
+
+    set index = index + 1
+end loop
+
+# 排序
+set comparator = this.forName("cn.org.expect.maven.repository.central.CentralComparator").newInstance()
+list.sort(comparator) # 按版本数，时间倒序排序
+
+set repository = "cn.org.expect.maven.repository.aliyun.AliyunMavenRepository"
+set enum = this.forName("cn.org.expect.maven.repository.SearchResultType").getEnum("ALL")
+set foundStart = list.size() + 1
+set foundNumber = list.size()
+set currentTimeMillis = this.currentTimeMillis()
+set hasMore = false
+
+set result = this.forName("cn.org.expect.maven.repository.impl.DefaultSearchResult").newInstance("${repository}", enum, list, $foundStart, $foundNumber, $currentTimeMillis, $hasMore)
+exit result

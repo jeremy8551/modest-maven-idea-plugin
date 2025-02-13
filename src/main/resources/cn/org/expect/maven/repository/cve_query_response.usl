@@ -1,0 +1,78 @@
+# =============================================================================
+# Author:             吕钊军
+# Created Date:       2025-01-10
+# Last Modified:      2025-01-12
+# Version:            1.0
+# parameter:          pattern（模糊查询）
+# Description:        响应解析
+# =============================================================================
+
+set responseBody = this.sendHttp("https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=${pattern}")
+# echo "responseBody: ${responseBody}"
+
+set startSearch = 0
+
+# 搜索字符串
+function searchStr() {
+    set indexStr="$1"
+    set begin = responseBody.indexOf("${indexStr}", $startSearch)
+    if $begin == -1 then
+        echo "responseBody: ${responseBody}, $startSearch"
+        exit null
+    else
+        set startSearch=$begin + indexStr.length()
+    fi
+}
+
+searchStr "Search Results"
+searchStr "Search Results"
+searchStr "Search Results"
+
+# <div class="smaller" style="background-color:#e0dbd2; padding:3px; border:1px solid #706c60; margin-bottom:10px">
+# There are <b>224</b> CVE Records that match your search.
+# </div>
+set divTag = responseBody.readTag("div", $startSearch)
+set startSearch = $startSearch + divTag.length()
+
+# There are 224 CVE Records that match your search.
+set foundNumber = divTag.newDocument().getChildNodes().get(0).getText().trim().split()[2].int()
+if foundNumber == 0 then
+    echo "divTag: ${divTag}"
+    echo "responseBody: ${responseBody}, $startSearch"
+    exit null
+fi
+
+set list = this.forName("java.util.ArrayList").newInstance()
+set trNodes = responseBody.readTag("table", $startSearch).newDocument().getChildNodes("table").get(0).getChildNodes("tr");
+set length = trNodes.size();
+set index = 0
+while index < length loop
+    set trNode = trNodes.get(index)
+
+	#<tr>
+	#  <td valign="top" nowrap="nowrap"><a href="https://www.cve.org/CVERecord?id=CVE-2024-6834">CVE-2024-6834</a></td>
+	#  <td valign="top">A vulnerability in APIML Spring Cloud Gateway which leverages user privileges by unexpected signing proxied request by Zowe's client certificate. This allows access to a user to the endpoints requiring an internal client certificate without any credentials. It could lead to managing components in there and allow an attacker to handle the whole communication including user credentials.
+    #</td>
+
+    set tdNodes = trNode.getChildNodes("td");
+    if tdNodes.size() >= 2 then
+        set cveId = tdNodes.get(0).getText().trim()
+        set cvfHref = tdNodes.get(0).getChildNodes("a").get(0).get("href").trim()
+        set cveDescription = tdNodes.get(1).getText().trim();
+
+        set cveInfo = this.forName("cn.org.expect.maven.repository.cve.DefaultCveInfo").newInstance(cveId, cveDescription, cvfHref)
+        list.add(cveInfo)
+    fi
+
+    set index = index + 1
+end loop
+
+set repository = "cn.org.expect.maven.repository.cve.CveRepository"
+set enum = this.forName("cn.org.expect.maven.repository.SearchResultType").getEnum("ALL")
+set foundStart = list.size()
+set foundNumber = list.size()
+set currentTimeMillis = this.currentTimeMillis()
+set hasMore = false
+
+set result = this.forName("cn.org.expect.maven.repository.impl.DefaultSearchResult").newInstance("${repository}", enum, list, $foundStart, $foundNumber, $currentTimeMillis, $hasMore)
+exit result
