@@ -1,0 +1,59 @@
+# =============================================================================
+# Author:             吕钊军
+# Created Date:       2025-01-10
+# Last Modified:      2025-01-12
+# Version:            1.0
+# parameter:          className（类名）
+# parameter:          start（起始位置）
+# Description:        响应解析
+# =============================================================================
+
+# 打印变量方法
+# this.help()
+
+set responseBody = this.sendHttp("https://search.maven.org/solrsearch/select?q=fc:${className}&rows=200&start=${start}&wt=json")
+responseBody.print()
+
+if responseBody.isBlank() || !responseBody.startsWith("{", 0, false, true) then
+    echo "responseBody: ${responseBody}"
+    exit null
+fi
+
+set json = responseBody.getJSONObject()
+set response = json.getJSONObject("response")
+set numFound = response.getInt("numFound") # 总记录数
+set responseStart = response.getInt("start") # 起始位置，从0开始
+set docs = response.getJSONArray("docs")
+
+set list = this.forName("java.util.ArrayList").newInstance()
+set length = docs.length()
+set index = 0
+while index < length loop
+    set jsonObject = docs.getJSONObject(index)
+    set groupId = jsonObject.getString("g");
+    set artifactId = jsonObject.getString("a");
+    set packaging = jsonObject.getString("p");
+    set timestamp = jsonObject.getLong("timestamp").date();
+    if jsonObject.has("v") then
+        set version = jsonObject.getString("v");
+    else
+        set version = jsonObject.getString("latestVersion");
+    fi
+    set versionCount = -1
+
+    set artifact = this.forName("cn.org.expect.maven.impl.DefaultArtifact").newInstance("${groupId}", "${artifactId}", "${version}", "${packaging}", timestamp, ${versionCount})
+    list.add(artifact)
+
+    set index = index + 1
+end loop
+
+set repository = "cn.org.expect.maven.repository.clazz.ClassRepository"
+set enum = this.forName("cn.org.expect.maven.repository.SearchResultType").getEnum("LIMIT_PAGE")
+set foundStart = responseStart + list.size() + 1
+set foundNumber = $numFound
+set currentTimeMillis =  this.currentTimeMillis()
+set hasMore = numFound > list.size()
+
+set result = this.forName("cn.org.expect.maven.repository.impl.DefaultSearchResult").newInstance("${repository}", enum, list, $foundStart, $foundNumber, $currentTimeMillis, $hasMore)
+# result.sortByGroup()
+exit result

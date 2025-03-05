@@ -1,0 +1,25 @@
+<idea-plugin>
+    <actions>
+        <!-- 打开本地 Maven 仓库 -->
+        <action id="OpenLocalRepository" class="cn.org.expect.intellij.idea.plugin.maven.action.OpenLocalRepositoryAction">
+        </action>
+
+        <!-- 删除本地仓库中 *.lastUpdated 文件 -->
+        <action id="CleanRepositoryLastUpdated" class="cn.org.expect.intellij.idea.plugin.maven.action.CleanLocalRepositoryActioin">
+        </action>
+
+        <!-- 打开 Maven 配置的 settings.xml  -->
+        <action id="OpenMavenSettingsXml" class="cn.org.expect.intellij.idea.plugin.maven.action.OpenMavenSettingsXmlAction">
+        </action>
+
+        <!-- 绘制菜单 -->
+        <group popup="false" id="MavenPlusID" text="MavenFinder">
+            <separator/> <!--分隔符-->
+            <reference ref="OpenLocalRepository"/>
+            <reference ref="CleanRepositoryLastUpdated"/>
+            <reference ref="OpenMavenSettingsXml"/>
+            <separator/> <!--分隔符-->
+            <add-to-group group-id="ToolsMenu" anchor="first"/>
+        </group>
+    </actions>
+</idea-plugin>
